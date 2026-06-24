@@ -8,8 +8,10 @@ package digest
 
 import (
 	"fmt"
+	"math"
 	"regexp"
 	"strings"
+	"unicode/utf8"
 )
 
 // Options controls which transformations the digest pipeline applies. The
@@ -32,7 +34,19 @@ type Options struct {
 	// ContextLines is the number of lines kept on each side of an important
 	// line when Window is enabled.
 	ContextLines int
+	// MaxTokens is a hard ceiling on the estimated token count of the output.
+	// Zero means unlimited. When exceeded, the lowest-value lines are dropped
+	// first, protecting failure lines and group headers.
+	MaxTokens int
+	// CharsPerToken is the divisor used to estimate tokens from character
+	// count. Lower values are more conservative (over-count tokens).
+	CharsPerToken float64
 }
+
+// defaultCharsPerToken approximates tokens-per-character for CI/log text
+// (paths, hashes and punctuation tokenize more densely than prose) across
+// current frontier and open-weight models. It is intentionally conservative.
+const defaultCharsPerToken = 3.5
 
 // Default returns Options with every transformation enabled.
 func Default() Options {
@@ -43,7 +57,18 @@ func Default() Options {
 		TrimBlankRuns:      true,
 		Window:             true,
 		ContextLines:       15,
+		MaxTokens:          0,
+		CharsPerToken:      defaultCharsPerToken,
 	}
+}
+
+// EstimateTokens approximates the number of tokens in s using charsPerToken.
+// A non-positive charsPerToken falls back to defaultCharsPerToken.
+func EstimateTokens(s string, charsPerToken float64) int {
+	if charsPerToken <= 0 {
+		charsPerToken = defaultCharsPerToken
+	}
+	return int(math.Ceil(float64(utf8.RuneCountInString(s)) / charsPerToken))
 }
 
 var (
