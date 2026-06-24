@@ -15,10 +15,11 @@ const budgetHeadroom = 0.95
 // such as "[vulncheck] $ govulncheck ./...". These are kept preferentially.
 var cmdRe = regexp.MustCompile(`^(?:\[[^\]]*\] )?\$ `)
 
-// budget enforces a hard token ceiling on the output. It drops the
-// lowest-value lines first, never dropping failure lines or group headers
-// unless even those alone exceed the budget, in which case it falls back to a
-// tail-biased head+tail truncation. It is a no-op when MaxTokens is zero.
+// budget enforces a hard token ceiling on the output by dropping the
+// lowest-value lines first. Value is scored so that failure lines and group
+// headers far outrank boilerplate; only when the budget is too small to hold
+// even those are the least valuable of them dropped. It is a no-op when
+// MaxTokens is zero.
 func budget(lines []string, opt Options) []string {
 	if opt.MaxTokens <= 0 || len(lines) == 0 {
 		return lines
@@ -51,13 +52,10 @@ func budget(lines []string, opt Options) []string {
 	}
 
 	keep := make([]bool, len(lines))
-	protected := make([]bool, len(lines))
-	for i, line := range lines {
+	for i := range keep {
 		keep[i] = true
-		protected[i] = importantRe.MatchString(line) || groupHeaderRe.MatchString(line)
 	}
-
-	for _, i := range dropOrder(lines, protected) {
+	for _, i := range dropOrder(lines) {
 		if total <= target {
 			break
 		}
@@ -65,31 +63,21 @@ func budget(lines []string, opt Options) []string {
 		total -= cost[i]
 	}
 
-	var out []string
-	if total > target {
-		// Even the protected lines exceed the budget: truncate hard, keeping
-		// the head and (preferentially) the tail where the exit status lives.
-		out = truncateHeadTail(lines, cost, target)
-	} else {
-		out = renderWithOmissions(lines, keep)
-	}
+	out := renderWithOmissions(lines, keep)
 	return append(out, footer)
 }
 
-// dropOrder returns the indices of non-protected lines ordered from least to
-// most valuable, so callers can drop from the front. Ties prefer dropping
-// earlier lines, biasing retention toward the end of the log.
-func dropOrder(lines []string, protected []bool) []int {
+// dropOrder returns every line index ordered from least to most valuable, so
+// callers can drop from the front. Ties prefer dropping earlier lines, biasing
+// retention toward the end of the log where the failure cause usually sits.
+func dropOrder(lines []string) []int {
 	dist := importantDistance(lines)
 	n := len(lines)
 
 	type cand struct{ idx, score int }
-	cands := make([]cand, 0, n)
+	cands := make([]cand, n)
 	for i, line := range lines {
-		if protected[i] {
-			continue
-		}
-		cands = append(cands, cand{i, lineScore(line, i, n, dist[i])})
+		cands[i] = cand{i, lineScore(line, i, n, dist[i])}
 	}
 	sort.Slice(cands, func(a, b int) bool {
 		if cands[a].score != cands[b].score {
@@ -98,7 +86,7 @@ func dropOrder(lines []string, protected []bool) []int {
 		return cands[a].idx < cands[b].idx
 	})
 
-	out := make([]int, len(cands))
+	out := make([]int, n)
 	for i, c := range cands {
 		out[i] = c.idx
 	}
@@ -111,6 +99,12 @@ func lineScore(line string, idx, n, dist int) int {
 		return 0
 	}
 	score := 10
+	switch {
+	case importantRe.MatchString(line):
+		score += 100 // failure cause: keep above all else
+	case groupHeaderRe.MatchString(line):
+		score += 80 // structural anchor
+	}
 	if cmdRe.MatchString(line) {
 		score += 40
 	}
@@ -157,33 +151,4 @@ func importantDistance(lines []string) []int {
 		}
 	}
 	return dist
-}
-
-// truncateHeadTail keeps as many tail lines as fit in most of the budget, then
-// fills the remainder from the head, dropping the middle. The tail is favoured
-// because the failure cause and exit status usually appear at the end.
-func truncateHeadTail(lines []string, cost []int, target int) []string {
-	n := len(lines)
-	keep := make([]bool, n)
-	used := 0
-
-	tailBudget := target * 7 / 10
-	for i := n - 1; i >= 0; i-- {
-		if used+cost[i] > tailBudget {
-			break
-		}
-		keep[i] = true
-		used += cost[i]
-	}
-	for i := 0; i < n; i++ {
-		if keep[i] {
-			continue
-		}
-		if used+cost[i] > target {
-			break
-		}
-		keep[i] = true
-		used += cost[i]
-	}
-	return renderWithOmissions(lines, keep)
 }
