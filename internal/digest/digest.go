@@ -41,6 +41,8 @@ type Options struct {
 	// CharsPerToken is the divisor used to estimate tokens from character
 	// count. Lower values are more conservative (over-count tokens).
 	CharsPerToken float64
+	// Format selects the output rendering. The zero value is FormatPlain.
+	Format Format
 }
 
 // defaultCharsPerToken approximates tokens-per-character for CI/log text
@@ -101,6 +103,9 @@ func Process(input []byte, opt Options) string {
 	lines = window(lines, opt)
 	lines = budget(lines, opt)
 
+	if opt.Format == FormatMarkdown {
+		return renderMarkdown(lines)
+	}
 	return strings.Join(lines, "\n")
 }
 
