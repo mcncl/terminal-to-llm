@@ -99,6 +99,7 @@ func Process(input []byte, opt Options) string {
 	}
 	lines = collapse(lines, opt)
 	lines = window(lines, opt)
+	lines = budget(lines, opt)
 
 	return strings.Join(lines, "\n")
 }
