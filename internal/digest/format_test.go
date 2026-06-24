@@ -51,6 +51,15 @@ func TestRenderMarkdown(t *testing.T) {
 	}
 }
 
+func TestRenderMarkdownKeepsBlockAcrossUIMarkers(t *testing.T) {
+	// A bare "^^^ +++" must not split a contiguous block into separate fences.
+	lines := []string{"ERROR task failed", "^^^ +++", "exit status 1"}
+	want := "```\nERROR task failed\nexit status 1\n```"
+	if got := renderMarkdown(lines); got != want {
+		t.Errorf("renderMarkdown() =\n%q\nwant\n%q", got, want)
+	}
+}
+
 func TestProcessMarkdownFormat(t *testing.T) {
 	opt := Default()
 	opt.Format = FormatMarkdown

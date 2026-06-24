@@ -54,12 +54,14 @@ func renderMarkdown(lines []string) string {
 	for _, line := range lines {
 		switch {
 		case groupHeaderRe.MatchString(line):
-			flush()
-			if title := headingTitle(line); title != "" {
-				b.WriteString("## ")
-				b.WriteString(title)
-				b.WriteByte('\n')
+			title := headingTitle(line)
+			if title == "" {
+				continue // UI-only marker (e.g. "^^^ +++"); not a section break
 			}
+			flush()
+			b.WriteString("## ")
+			b.WriteString(title)
+			b.WriteByte('\n')
 		case markerRe.MatchString(line):
 			flush()
 			inner := strings.TrimSuffix(strings.TrimPrefix(line, "["), "]")
