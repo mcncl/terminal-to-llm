@@ -22,6 +22,9 @@ type CLI struct {
 	KeepProgress   bool `help:"Do not collapse runs of progress lines (e.g. 12%, 25%)."`
 	KeepBlankLines bool `help:"Do not collapse runs of blank lines."`
 
+	NoWindow bool `help:"Disable failure-focused windowing (keep all lines)."`
+	Context  int  `default:"15" help:"Lines of context to keep around each important line when windowing."`
+
 	Version kong.VersionFlag `help:"Print the version and exit."`
 }
 
@@ -47,6 +50,8 @@ func run(cli CLI) error {
 		CollapseDuplicates: !cli.KeepDuplicates,
 		CollapseProgress:   !cli.KeepProgress,
 		TrimBlankRuns:      !cli.KeepBlankLines,
+		Window:             !cli.NoWindow,
+		ContextLines:       cli.Context,
 	}
 
 	out := digest.Process(input, opt)
