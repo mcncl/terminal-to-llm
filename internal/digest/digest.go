@@ -26,6 +26,12 @@ type Options struct {
 	CollapseProgress bool
 	// TrimBlankRuns collapses runs of blank lines into a single blank line.
 	TrimBlankRuns bool
+	// Window keeps only a context window around important (failure) lines,
+	// omitting unrelated bulk. It is a no-op when no important lines exist.
+	Window bool
+	// ContextLines is the number of lines kept on each side of an important
+	// line when Window is enabled.
+	ContextLines int
 }
 
 // Default returns Options with every transformation enabled.
@@ -35,6 +41,8 @@ func Default() Options {
 		CollapseDuplicates: true,
 		CollapseProgress:   true,
 		TrimBlankRuns:      true,
+		Window:             true,
+		ContextLines:       15,
 	}
 }
 
@@ -65,6 +73,7 @@ func Process(input []byte, opt Options) string {
 		lines = trimBlankRuns(lines)
 	}
 	lines = collapse(lines, opt)
+	lines = window(lines, opt)
 
 	return strings.Join(lines, "\n")
 }
