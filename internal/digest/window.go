@@ -50,6 +50,13 @@ func window(lines []string, opt Options) []string {
 		}
 	}
 
+	return renderWithOmissions(lines, keep)
+}
+
+// renderWithOmissions returns lines for which keep is true, replacing each
+// dropped run of at least minOmit lines with an "[… N lines omitted …]" marker.
+// Shorter dropped runs are emitted verbatim, since a marker would not save space.
+func renderWithOmissions(lines []string, keep []bool) []string {
 	out := make([]string, 0, len(lines))
 	for i := 0; i < len(lines); {
 		if keep[i] {
