@@ -39,6 +39,17 @@ func budget(lines []string, opt Options) []string {
 		return lines
 	}
 
+	// Reserve room for the footer and a representative omission marker so the
+	// annotations we add do not themselves push the output over the ceiling.
+	footer := fmt.Sprintf("[… trimmed to fit ~%d token budget …]", opt.MaxTokens)
+	reserve := EstimateTokens(footer, opt.CharsPerToken) +
+		EstimateTokens("[… 0000 lines omitted …]", opt.CharsPerToken)
+	if r := target - reserve; r >= 1 {
+		target = r
+	} else {
+		target = 1
+	}
+
 	keep := make([]bool, len(lines))
 	protected := make([]bool, len(lines))
 	for i, line := range lines {
@@ -62,7 +73,7 @@ func budget(lines []string, opt Options) []string {
 	} else {
 		out = renderWithOmissions(lines, keep)
 	}
-	return append(out, fmt.Sprintf("[… trimmed to fit ~%d token budget …]", opt.MaxTokens))
+	return append(out, footer)
 }
 
 // dropOrder returns the indices of non-protected lines ordered from least to
