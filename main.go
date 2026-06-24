@@ -28,6 +28,8 @@ type CLI struct {
 	MaxTokens     int     `help:"Hard ceiling on the estimated tokens of the output (0 = unlimited). This is the budget for the log, not the model's full context window."`
 	CharsPerToken float64 `default:"3.5" help:"Characters-per-token used to estimate token counts. Lower is more conservative."`
 
+	Format string `default:"plain" enum:"plain,markdown" help:"Output format: plain or markdown."`
+
 	Version kong.VersionFlag `help:"Print the version and exit."`
 }
 
@@ -57,6 +59,7 @@ func run(cli CLI) error {
 		ContextLines:       cli.Context,
 		MaxTokens:          cli.MaxTokens,
 		CharsPerToken:      cli.CharsPerToken,
+		Format:             digest.ParseFormat(cli.Format),
 	}
 
 	out := digest.Process(input, opt)
