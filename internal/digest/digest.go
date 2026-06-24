@@ -49,8 +49,11 @@ func Process(input []byte, opt Options) string {
 	lines := make([]string, 0, len(raw))
 
 	for _, line := range raw {
-		line = resolveCR(line)
+		// Strip escapes before resolving carriage returns: otherwise the
+		// column math can slice an escape sequence (e.g. a Buildkite
+		// "\x1b_bk;t=...\x07" timestamp) in half, leaking fragments.
 		line = stripANSI(line)
+		line = resolveCR(line)
 		line = strings.TrimRight(line, " \t")
 		if opt.StripTimestamps {
 			line = stripLeadingTimestamp(line)

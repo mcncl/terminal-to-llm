@@ -92,6 +92,17 @@ func TestProcessRespectsDisabledOptions(t *testing.T) {
 	}
 }
 
+// TestProcessStripsBeforeResolvingCR guards against a regression where
+// carriage-return column math ran before escape stripping, slicing a
+// Buildkite timestamp sequence in half and leaking its digits into the output.
+func TestProcessStripsBeforeResolvingCR(t *testing.T) {
+	in := []byte("Counting:  10%\x1b_bk;t=1638362886443\x07\rCounting: 100%, done.")
+	want := "Counting: 100%, done."
+	if got := Process(in, Default()); got != want {
+		t.Errorf("Process() = %q, want %q", got, want)
+	}
+}
+
 func TestProcessEndToEnd(t *testing.T) {
 	in := []byte("\x1b_bk;t=1638362886443\x07\x1b[32m15:04:05 Building\x1b[0m\n" +
 		"progress 10%\rprogress 60%\rprogress 100%\n" +
