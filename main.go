@@ -25,6 +25,9 @@ type CLI struct {
 	NoWindow bool `help:"Disable failure-focused windowing (keep all lines)."`
 	Context  int  `default:"15" help:"Lines of context to keep around each important line when windowing."`
 
+	MaxTokens     int     `help:"Hard ceiling on the estimated tokens of the output (0 = unlimited). This is the budget for the log, not the model's full context window."`
+	CharsPerToken float64 `default:"3.5" help:"Characters-per-token used to estimate token counts. Lower is more conservative."`
+
 	Version kong.VersionFlag `help:"Print the version and exit."`
 }
 
@@ -52,12 +55,15 @@ func run(cli CLI) error {
 		TrimBlankRuns:      !cli.KeepBlankLines,
 		Window:             !cli.NoWindow,
 		ContextLines:       cli.Context,
+		MaxTokens:          cli.MaxTokens,
+		CharsPerToken:      cli.CharsPerToken,
 	}
 
 	out := digest.Process(input, opt)
 	if _, err := fmt.Fprintln(os.Stdout, out); err != nil {
 		return err
 	}
+	fmt.Fprintf(os.Stderr, "~%d tokens\n", digest.EstimateTokens(out, cli.CharsPerToken))
 	return nil
 }
 
