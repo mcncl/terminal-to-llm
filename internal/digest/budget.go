@@ -25,46 +25,69 @@ func budget(lines []string, opt Options) []string {
 		return lines
 	}
 
+	cpt := opt.CharsPerToken
 	target := int(float64(opt.MaxTokens) * budgetHeadroom)
 	if target < 1 {
 		target = 1
 	}
-
-	cost := make([]int, len(lines))
-	total := 0
-	for i, line := range lines {
-		cost[i] = EstimateTokens(line, opt.CharsPerToken)
-		total += cost[i]
-	}
-	if total <= target {
+	if EstimateTokens(strings.Join(lines, "\n"), cpt) <= target {
 		return lines
 	}
 
-	// Reserve room for the footer and a representative omission marker so the
-	// annotations we add do not themselves push the output over the ceiling.
+	n := len(lines)
 	footer := fmt.Sprintf("[… trimmed to fit ~%d token budget …]", opt.MaxTokens)
-	reserve := EstimateTokens(footer, opt.CharsPerToken) +
-		EstimateTokens("[… 0000 lines omitted …]", opt.CharsPerToken)
-	if r := target - reserve; r >= 1 {
-		target = r
-	} else {
-		target = 1
+
+	// total tracks the estimated token count of the rendered output. We drop
+	// lines lowest-value first, but a dropped line only saves tokens once its
+	// run reaches minOmit and becomes a marker; shorter runs are re-emitted
+	// verbatim by renderWithOmissions, so we account for that exactly here.
+	cost := make([]int, n)
+	total := EstimateTokens(footer, cpt)
+	for i, line := range lines {
+		cost[i] = EstimateTokens(line, cpt)
+		total += cost[i]
 	}
 
-	keep := make([]bool, len(lines))
-	for i := range keep {
-		keep[i] = true
+	contribution := func(length, sum int) int {
+		if length >= minOmit {
+			return EstimateTokens(fmt.Sprintf("[… %d lines omitted …]", length), cpt)
+		}
+		return sum // re-emitted verbatim, so it still costs its full size
 	}
+
+	// Per dropped run we store, at its start a: end index and summed cost; at
+	// its end b: the start index. This merges adjacent runs in amortised O(1).
+	dropped := make([]bool, n)
+	runEnd := make([]int, n)
+	runStart := make([]int, n)
+	runSum := make([]int, n)
+
 	for _, i := range dropOrder(lines) {
 		if total <= target {
 			break
 		}
-		keep[i] = false
-		total -= cost[i]
+		total -= cost[i] // no longer counted as a kept line
+		a, b, sum := i, i, cost[i]
+		if i > 0 && dropped[i-1] {
+			la := runStart[i-1]
+			total -= contribution(i-la, runSum[la])
+			a, sum = la, sum+runSum[la]
+		}
+		if i < n-1 && dropped[i+1] {
+			rb := runEnd[i+1]
+			total -= contribution(rb-i, runSum[i+1])
+			b, sum = rb, sum+runSum[i+1]
+		}
+		dropped[i] = true
+		runEnd[a], runStart[b], runSum[a] = b, a, sum
+		total += contribution(b-a+1, sum)
 	}
 
-	out := renderWithOmissions(lines, keep)
-	return append(out, footer)
+	keep := make([]bool, n)
+	for i := range keep {
+		keep[i] = !dropped[i]
+	}
+	return append(renderWithOmissions(lines, keep), footer)
 }
 
 // dropOrder returns every line index ordered from least to most valuable, so

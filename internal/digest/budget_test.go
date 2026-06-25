@@ -57,15 +57,40 @@ func TestBudgetProtectsFailuresAndDropsNoise(t *testing.T) {
 	}
 }
 
+// TestBudgetAccountsForVerbatimReadds guards against a regression where the
+// budget under-counted output because dropping scattered, isolated lines does
+// not actually remove them — runs shorter than minOmit are re-emitted verbatim.
+// Here every other line is high-value, forcing isolated single-line drops.
+func TestBudgetAccountsForVerbatimReadds(t *testing.T) {
+	var lines []string
+	for i := 0; i < 40; i++ {
+		lines = append(lines,
+			"error important line that must be kept for sure",
+			"low value filler noise line to be dropped away",
+		)
+	}
+	const maxTokens = 200
+	got := budget(lines, Options{MaxTokens: maxTokens, CharsPerToken: 3.5})
+	joined := strings.Join(got, "\n")
+	if n := EstimateTokens(joined, 3.5); n > maxTokens {
+		t.Errorf("budget() produced ~%d tokens, over the %d ceiling", n, maxTokens)
+	}
+}
+
 func TestBudgetKeepsGroupHeaders(t *testing.T) {
 	lines := []string{
 		"~~~ Section one",
-		"noise alpha bravo charlie delta echo",
-		"noise foxtrot golf hotel india juliet",
+		"noise alpha bravo charlie delta echo one",
+		"noise foxtrot golf hotel india juliet two",
+		"noise kilo lima mike november oscar three",
+		"noise papa quebec romeo sierra tango four",
 		"+++ Section two",
-		"noise kilo lima mike november oscar",
+		"noise uniform victor whiskey xray yankee five",
+		"noise zulu able baker charlie dog easy six",
+		"noise fox george how item jig king seven",
+		"noise love mike nan oboe peter queen eight",
 	}
-	got := budget(lines, Options{MaxTokens: 40, CharsPerToken: 3.5})
+	got := budget(lines, Options{MaxTokens: 80, CharsPerToken: 3.5})
 	joined := strings.Join(got, "\n")
 	for _, h := range []string{"~~~ Section one", "+++ Section two"} {
 		if !strings.Contains(joined, h) {
