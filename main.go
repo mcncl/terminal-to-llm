@@ -8,7 +8,7 @@ import (
 	"os"
 
 	"github.com/alecthomas/kong"
-	"github.com/buildkite/terminal-to-llm/internal/digest"
+	"github.com/buildkite/terminal-to-llm/digest"
 )
 
 var version = "dev"
