@@ -13,54 +13,35 @@ raw log ─▶ strip ANSI/timestamps ─▶ resolve CR redraws ─▶ collapse d
         ─▶ trim blank runs ─▶ failure-focused windowing ─▶ token budget ─▶ render
 ```
 
-- **Strips ANSI escapes and timestamps** — colours, cursor moves, OSC sequences, and Buildkite's per-line `\x1b_bk;t=…\x07` timestamps. Most of the size saving.
-- **Resolves carriage-return redraws** — progress bars and spinners that rewrite one line via `\r` are reduced to their final rendered state.
-- **Collapses duplicate and progress lines** — identical consecutive lines fold to `… (×N)`; lines differing only by numbers (`12%`, `25%`) fold to the final value plus a count.
-- **Failure-focused windowing** — keeps a context window around error/failure lines (and always keeps Buildkite `~~~` / `+++` / `^^^` group markers as structure), replacing unrelated bulk with `[… N lines omitted …]`. Clean logs with no failures are left untouched.
-- **Token budgeting** — an optional hard ceiling that drops the lowest-value lines first (failure lines and group headers are scored highest), so the *why* survives even at an aggressive budget.
-- **Markdown output** — optionally render groups as headings and log bodies as fenced code blocks for a clearer document outline.
+### Strips ANSI escapes and timestamps
+
+Colours, cursor moves, OSC sequences, and Buildkite's per-line `\x1b_bk;t=…\x07` timestamps.
+
+### Resolves carriage-return redraws
+ 
+Progress bars and spinners that rewrite one line via `\r` are reduced to their final rendered state.
+
+### Collapses duplicate and progress lines
+
+Identical consecutive lines fold to `… (×N)`; lines differing only by numbers (`12%`, `25%`) fold to the final value plus a count.
+
+### Failure-focused windowing
+
+Keeps a context window around error/failure lines (and always keeps Buildkite `~~~` / `+++` / `^^^` group markers as structure), replacing unrelated bulk with `[… N lines omitted …]`. Clean logs with no failures are left untouched.
+
+### Token budgeting
+
+An optional hard ceiling that drops the lowest-value lines first (failure lines and group headers are scored highest), so the *why* survives even at an aggressive budget.
+
+### Markdown output
+
+Optionally render groups as headings and log bodies as fenced code blocks for a clearer document outline.
 
 ## Install
 
 ```
 go install github.com/mcncl/terminal-to-llm@latest
 ```
-
-Or build from source:
-
-```
-go build -o terminal-to-llm .
-```
-
-## Usage
-
-Read from stdin:
-
-```
-cat job.log | terminal-to-llm
-```
-
-Read from a file:
-
-```
-terminal-to-llm job.log
-```
-
-Pipe a Buildkite job log straight through the [Buildkite
-CLI](https://github.com/buildkite/cli):
-
-```
-bk job log <job-uuid> | terminal-to-llm
-```
-
-Fit the output into a token budget and render it as Markdown:
-
-```
-bk job log <job-uuid> | terminal-to-llm --max-tokens 2000 --format markdown
-```
-
-The estimated token count of the output is printed to stderr, so it never
-pollutes the digest on stdout.
 
 ## Flags
 
@@ -78,14 +59,6 @@ pollutes the digest on stdout.
 
 ### A note on `--max-tokens`
 
-This is the budget for **the log**, not the model's full context window — logs
-are one input among the system prompt, the question, and other context, so set
-it to whatever slice you are giving the log.
+This is the budget for **the log**, not the model's full context window — logs are one input among the system prompt, the question, and other context, so set it to whatever slice you are giving the log.
 
-Token counts are *estimated* from character count (`--chars-per-token`), not a
-real tokenizer. There is no single offline tokenizer that is accurate across
-Claude, GPT and open-weight models, and for code/log text they all land in
-roughly 3.3–4.0 characters per token. The default of `3.5` is deliberately
-conservative (it slightly over-counts, keeping you under the real limit). For an
-unusual model you can tune it. The result is a hard cap at realistic budgets and
-best-effort at very small ones, where fixed marker overhead dominates.
+Token counts are *estimated* from character count (`--chars-per-token`), not a real tokenizer. There is no single offline tokenizer that is accurate across Claude, GPT and open-weight models, and for code/log text they all land in roughly 3.3–4.0 characters per token. The default of `3.5` is deliberately conservative (it slightly over-counts, keeping you under the real limit). For an unusual model you can tune it. The result is a hard cap at realistic budgets and best-effort at very small ones, where fixed marker overhead dominates.
