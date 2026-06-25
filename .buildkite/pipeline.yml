@@ -1,0 +1,34 @@
+agents:
+  queue: hosted
+
+cache: ".buildkite/cache-volume"
+
+steps:
+  - name: ":golangci-lint: lint"
+    key: lint
+    command: "mise run lint"
+    secrets:
+      - MISE_GITHUB_TOKEN
+    plugins:
+      - mise#v1.1.4: ~
+
+  - name: ":go: test"
+    key: test
+    command: "mise run test"
+    secrets:
+      - MISE_GITHUB_TOKEN
+    plugins:
+      - mise#v1.1.4: ~
+
+  - label: ":terminal: build"
+    key: build
+    depends_on:
+      - lint
+      - test
+    command: "mise run build"
+    artifact_paths:
+      - dist/**/*
+    secrets:
+      - MISE_GITHUB_TOKEN
+    plugins:
+      - mise#v1.1.4: ~
