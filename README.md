@@ -1,12 +1,8 @@
-# terminal-to-llm
+<img style="display: block; margin: 0 auto;" src="header.svg" alt="TERMINAL-TO-LLM" width="700">
 
-Digest raw terminal / CI job logs into a compact, plain-text form that is cheaper
-and clearer for a large language model to consume.
+Digest raw terminal / CI job logs into a compact, plain-text form that is cheaper and clearer for a large language model to consume.
 
-It is the spiritual opposite of
-[terminal-to-html](https://github.com/buildkite/terminal-to-html): instead of
-rendering shell output into *beautiful* HTML, it strips everything an LLM does
-not need and focuses on what it does — usually, *why a build failed*.
+It is the spiritual opposite of [terminal-to-html](https://github.com/buildkite/terminal-to-html): instead of rendering shell output into *beautiful* HTML, it strips everything an LLM does not need and focuses on what it does — usually, *why a build failed*.
 
 ## What it does
 
@@ -17,27 +13,17 @@ raw log ─▶ strip ANSI/timestamps ─▶ resolve CR redraws ─▶ collapse d
         ─▶ trim blank runs ─▶ failure-focused windowing ─▶ token budget ─▶ render
 ```
 
-- **Strips ANSI escapes and timestamps** — colours, cursor moves, OSC sequences,
-  and Buildkite's per-line `\x1b_bk;t=…\x07` timestamps. Most of the size saving.
-- **Resolves carriage-return redraws** — progress bars and spinners that rewrite
-  one line via `\r` are reduced to their final rendered state.
-- **Collapses duplicate and progress lines** — identical consecutive lines fold
-  to `… (×N)`; lines differing only by numbers (`12%`, `25%`) fold to the final
-  value plus a count.
-- **Failure-focused windowing** — keeps a context window around error/failure
-  lines (and always keeps Buildkite `~~~` / `+++` / `^^^` group markers as
-  structure), replacing unrelated bulk with `[… N lines omitted …]`. Clean logs
-  with no failures are left untouched.
-- **Token budgeting** — an optional hard ceiling that drops the lowest-value
-  lines first (failure lines and group headers are scored highest), so the
-  *why* survives even at an aggressive budget.
-- **Markdown output** — optionally render groups as headings and log bodies as
-  fenced code blocks for a clearer document outline.
+- **Strips ANSI escapes and timestamps** — colours, cursor moves, OSC sequences, and Buildkite's per-line `\x1b_bk;t=…\x07` timestamps. Most of the size saving.
+- **Resolves carriage-return redraws** — progress bars and spinners that rewrite one line via `\r` are reduced to their final rendered state.
+- **Collapses duplicate and progress lines** — identical consecutive lines fold to `… (×N)`; lines differing only by numbers (`12%`, `25%`) fold to the final value plus a count.
+- **Failure-focused windowing** — keeps a context window around error/failure lines (and always keeps Buildkite `~~~` / `+++` / `^^^` group markers as structure), replacing unrelated bulk with `[… N lines omitted …]`. Clean logs with no failures are left untouched.
+- **Token budgeting** — an optional hard ceiling that drops the lowest-value lines first (failure lines and group headers are scored highest), so the *why* survives even at an aggressive budget.
+- **Markdown output** — optionally render groups as headings and log bodies as fenced code blocks for a clearer document outline.
 
 ## Install
 
 ```
-go install github.com/buildkite/terminal-to-llm@latest
+go install github.com/mcncl/terminal-to-llm@latest
 ```
 
 Or build from source:
@@ -103,18 +89,3 @@ roughly 3.3–4.0 characters per token. The default of `3.5` is deliberately
 conservative (it slightly over-counts, keeping you under the real limit). For an
 unusual model you can tune it. The result is a hard cap at realistic budgets and
 best-effort at very small ones, where fixed marker overhead dominates.
-
-## Development
-
-The toolchain is pinned with [mise](https://mise.jdx.dev). The same tasks run
-locally and in CI:
-
-```
-mise run lint    # golangci-lint
-mise run test    # go test ./...
-mise run build   # build into dist/
-mise run ci      # lint + test
-```
-
-The CLI lives in [`main.go`](main.go); all log-processing logic is in the
-[`internal/digest`](internal/digest) package.
