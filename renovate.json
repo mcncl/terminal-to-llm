@@ -30,5 +30,5 @@
       "description": "Group Buildkite pipeline config",
       "matchFileNames": [".buildkite/**"],
       "groupName": "buildkite"
-    },
-
+    }
+}
