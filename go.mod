@@ -1,4 +1,4 @@
-module github.com/buildkite/terminal-to-llm
+module github.com/mcncl/terminal-to-llm
 
 go 1.26.4
 
