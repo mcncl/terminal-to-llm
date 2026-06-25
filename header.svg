@@ -1,9 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="350" height="80" viewBox="0 0 350 90">
   <rect x="0" y="10" width="350" height="70"
         rx="8" ry="8"
-        fill="none" stroke="#333" stroke-width="3"/>
+        fill="none" stroke="#333" stroke-width="8"/>
   <text x="175" y="45"
-        font-family="monospace" font-size="36" font-weight="bold"
+        font-family="Gill Sans, sans-serif" font-size="30" font-weight="bold"
         fill="#333"
         text-anchor="middle" dominant-baseline="central">TERMINAL-TO-LLM</text>
 </svg>
