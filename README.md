@@ -106,10 +106,14 @@ best-effort at very small ones, where fixed marker overhead dominates.
 
 ## Development
 
+The toolchain is pinned with [mise](https://mise.jdx.dev). The same tasks run
+locally and in CI:
+
 ```
-go test ./...
-go vet ./...
-gofmt -l .
+mise run lint    # golangci-lint
+mise run test    # go test ./...
+mise run build   # build into dist/
+mise run ci      # lint + test
 ```
 
 The CLI lives in [`main.go`](main.go); all log-processing logic is in the
