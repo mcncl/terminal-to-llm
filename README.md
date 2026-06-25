@@ -43,6 +43,51 @@ Optionally render groups as headings and log bodies as fenced code blocks for a 
 go install github.com/mcncl/terminal-to-llm@latest
 ```
 
+## Library usage
+
+`terminal-to-llm` is also a Go package. Add it to your module:
+
+```
+go get github.com/mcncl/terminal-to-llm/digest
+```
+
+Then digest a raw log with `digest.Process`, which takes the raw bytes and an
+`Options` value and returns the cleaned string:
+
+```go
+package main
+
+import (
+	"fmt"
+	"io"
+	"os"
+
+	"github.com/mcncl/terminal-to-llm/digest"
+)
+
+func main() {
+	// Raw log bytes from anywhere: a file, an HTTP body, `bk job log`, etc.
+	rawLog, err := io.ReadAll(os.Stdin)
+	if err != nil {
+		panic(err)
+	}
+
+	// Start from the defaults (every transform on, no token limit) and tweak.
+	opt := digest.Default()
+	opt.MaxTokens = 2000              // hard ceiling on the output (0 = unlimited)
+	opt.Format = digest.FormatMarkdown // or digest.FormatPlain
+
+	out := digest.Process(rawLog, opt)
+	fmt.Println(out)
+}
+```
+
+You can also estimate tokens directly without processing:
+
+```go
+n := digest.EstimateTokens(out, 3.5)
+```
+
 ## Flags
 
 | Flag | Default | Description |
