@@ -1,0 +1,34 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    ":disableDependencyDashboard",
+    "config:recommended",
+    ":semanticCommits",
+    "schedule:weekdays",
+    "group:allNonMajor"
+  ],
+  "labels": ["dependencies"],
+  "prConcurrentLimit": 5,
+  "prHourlyLimit": 2,
+  "minimumReleaseAge": "3 days",
+  "vulnerabilityAlerts": {
+    "labels": ["dependencies", "security"],
+    "minimumReleaseAge": "0 days",
+    "enabled": true
+  },
+  "postUpdateOptions": ["gomodTidy"],
+  "automerge": true,
+  "automergeType": "pr",
+  "platformAutomerge": true,
+  "packageRules": [
+    {
+      "description": "Group Buildkite dependencies",
+      "matchSourceUrls": ["https://github.com/buildkite/**"],
+      "groupName": "buildkite"
+    },
+    {
+      "description": "Group Buildkite pipeline config",
+      "matchFileNames": [".buildkite/**"],
+      "groupName": "buildkite"
+    },
+
