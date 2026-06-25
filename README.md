@@ -2,7 +2,7 @@
 
 Digest raw terminal / CI job logs into a compact, plain-text form that is cheaper and clearer for a large language model to consume.
 
-It is the spiritual opposite of [terminal-to-html](https://github.com/buildkite/terminal-to-html): instead of rendering shell output into *beautiful* HTML, it strips everything an LLM does not need and focuses on what it does — usually, *why a build failed*.
+It is the spiritual opposite of [terminal-to-html](https://github.com/buildkite/terminal-to-html): instead of rendering shell output into *beautiful* HTML, it strips everything an LLM does not need and focuses on what it does, usually, *why a build failed*.
 
 ## What it does
 
@@ -104,6 +104,6 @@ n := digest.EstimateTokens(out, 3.5)
 
 ### A note on `--max-tokens`
 
-This is the budget for **the log**, not the model's full context window — logs are one input among the system prompt, the question, and other context, so set it to whatever slice you are giving the log.
+This is the budget for **the log**, not the model's full context window; logs are one input among the system prompt, the question, and other context, so set it to whatever slice you are giving the log.
 
 Token counts are *estimated* from character count (`--chars-per-token`), not a real tokenizer. There is no single offline tokenizer that is accurate across Claude, GPT and open-weight models, and for code/log text they all land in roughly 3.3–4.0 characters per token. The default of `3.5` is deliberately conservative (it slightly over-counts, keeping you under the real limit). For an unusual model you can tune it. The result is a hard cap at realistic budgets and best-effort at very small ones, where fixed marker overhead dominates.
