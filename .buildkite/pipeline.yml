@@ -10,7 +10,7 @@ steps:
     secrets:
       - MISE_GITHUB_TOKEN
     plugins:
-      - mise#v1.1.4: ~
+      - mise#v1.1.5: ~
 
   - name: ":go: test"
     key: test
@@ -18,7 +18,7 @@ steps:
     secrets:
       - MISE_GITHUB_TOKEN
     plugins:
-      - mise#v1.1.4: ~
+      - mise#v1.1.5: ~
 
   - label: ":terminal: build"
     key: build
@@ -31,4 +31,4 @@ steps:
     secrets:
       - MISE_GITHUB_TOKEN
     plugins:
-      - mise#v1.1.4: ~
+      - mise#v1.1.5: ~
